@@ -1,16 +1,15 @@
 --多元魔導書庫クレッセン
 function c10190.initial_effect(c)
 	--Activate(effect)
-	local e1=Effect.CreateEffect(c)
-	e1:SetRange(LOCATION_HAND)	
-	e1:SetCategory(CATEGORY_TOHAND)
-	e1:SetType(EFFECT_TYPE_ACTIVATE)
-	e1:SetCode(EVENT_FREE_CHAIN)
-	e1:SetCondition(c10190.condition2)
-	-- e1:SetCost(c10190.cost2)
-	--e1:SetTarget(c10190.target2)
-	e1:SetOperation(c10190.activate2)
-	c:RegisterEffect(e1)
+	local e4=Effect.CreateEffect(c)
+	e4:SetType(EFFECT_TYPE_ACTIVATE)
+	e4:SetCode(EVENT_CHAINING)
+	e4:SetRange(LOCATION_DECK+LOCATION_HAND)
+	e4:SetCategory(CATEGORY_NEGATE+CATEGORY_DESTROY)
+	e4:SetCondition(c10190.condition2)
+	-- e4:SetTarget(c10190.target)
+	e4:SetOperation(c10190.activate2)
+	c:RegisterEffect(e4)
 	--act in hand
 	local e2=Effect.CreateEffect(c)
 	e2:SetType(EFFECT_TYPE_SINGLE)
@@ -35,42 +34,30 @@ function c10190.chainfilter(re,tp,cid)
 	return not (re:IsHasType(EFFECT_TYPE_ACTIVATE) and re:IsActiveType(TYPE_SPELL) and not re:GetHandler():IsSetCard(0x106e))
 end
 
-function c10190.condition2(e,tp,eg,ep,ev,re,r,rp)
-	return Duel.IsPlayerCanDraw(tp, 5)
-end
-
-function c10190.cost2(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return true end
-	local c = e:GetHandler()
-	Duel.SendtoGrave(c, REASON_COST)
-end
-
 function c10190.tagen_filter(c)
 	return c:IsSetCard(0x106e)
 end
 
-function c10190.target2(e,tp,eg,ep,ev,re,r,rp,chk)
+function c10190.condition2(e,tp,eg,ep,ev,re,r,rp)
+	local flag = re:IsHasType(EFFECT_TYPE_ACTIVATE) and Duel.IsChainNegatable(ev)
+	if flag == true then Debug.Message("ok")
+	else Debug.Message("no") end
+	--Debug.Message("no") 
+	return flag
+end
+
+function c10190.target(e,tp,eg,ep,ev,re,r,rp,chk, chkc)
 	if chk==0 then return true end
 	Duel.SetOperationInfo(0,CATEGORY_NEGATE,eg,1,0,0)
 	if re:GetHandler():IsDestructable() and re:GetHandler():IsRelateToEffect(re) then
 		Duel.SetOperationInfo(0,CATEGORY_DESTROY,eg,1,0,0)
 	end
 end
+
 function c10190.activate2(e,tp,eg,ep,ev,re,r,rp)
-	local p=Duel.GetChainInfo(0,CHAININFO_TARGET_PLAYER)
-	Duel.ConfirmDecktop(p,5)
-	local g=Duel.GetDecktopGroup(p,5)
-	g = g:Filter(c10190.tagen_filter, nil)
-	if g:GetCount()>0 then
-		Duel.Hint(HINT_SELECTMSG,p,HINTMSG_ATOHAND)
-		local sg=g:Select(p,2,2,nil)
-		if sg:GetFirst():IsAbleToHand() then
-			Duel.SendtoHand(sg,nil,REASON_EFFECT)
-			Duel.ConfirmCards(1-p,sg)
-			Duel.ShuffleHand(p)
-		else
-			Duel.SendtoGrave(sg,REASON_RULE)
-		end
-		Duel.ShuffleDeck(p)
+	local c = e:GetHandler()
+	if Duel.NegateActivation(ev) then
+		Duel.Destroy(eg,REASON_EFFECT)
+		Duel.SendtoGrave(c, REASON_EFFECT)
 	end
 end
